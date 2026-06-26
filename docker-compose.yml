@@ -1,24 +1,25 @@
 services:
 
   ollama:
-    image: ollama/ollama:0.30.7
-    container_name: ollama
+    image: ollama/ollama:${OLLAMA_VERSION:-0.30.7}
+    container_name: ${PROJECT_NAME:-local}.ollama
     restart: unless-stopped
     networks:
       - llm-net
     environment:
-      OLLAMA_KEEP_ALIVE: "-1"
-      OLLAMA_CONTEXT_LENGTH: "32768"
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:--1}
+      OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-32768}
     volumes:
       - ollama-models:/root/.ollama
 
   litellm:
-    image: ghcr.io/berriai/litellm:v1.88.1
-    container_name: litellm
+    image: ghcr.io/berriai/litellm:${LITELLM_VERSION:-v1.88.1}
+    container_name: ${PROJECT_NAME:-local}.litellm
     restart: unless-stopped
     networks:
       - llm-net
-      - traefik_http_proxy
+    ports:
+      - "${LITELLM_PORT:-4000}:4000"
     environment:
       LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY}
       DATABASE_URL: ${DATABASE_URL}
@@ -30,20 +31,10 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=traefik_http_proxy"
-      - "traefik.http.routers.litellm-secured.rule=Host(`${SRVNAME}`)"
-      - "traefik.http.routers.litellm-secured.entrypoints=websecure"
-      - "traefik.http.routers.litellm-secured.tls=true"
-      - "traefik.http.routers.litellm-secured.tls.certresolver=myhttpchallenge"
-      - "traefik.http.services.litellm.loadbalancer.server.port=4000"
 
 networks:
   llm-net:
     driver: bridge
-  traefik_http_proxy:
-    external: true
 
 volumes:
   ollama-models:
