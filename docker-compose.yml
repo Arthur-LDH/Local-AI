@@ -1,0 +1,49 @@
+services:
+
+  ollama:
+    image: ollama/ollama:0.30.7
+    container_name: ollama
+    restart: unless-stopped
+    networks:
+      - llm-net
+    environment:
+      OLLAMA_KEEP_ALIVE: "-1"
+      OLLAMA_CONTEXT_LENGTH: "32768"
+    volumes:
+      - ollama-models:/root/.ollama
+
+  litellm:
+    image: ghcr.io/berriai/litellm:v1.88.1
+    container_name: litellm
+    restart: unless-stopped
+    networks:
+      - llm-net
+      - traefik_http_proxy
+    environment:
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY}
+      DATABASE_URL: ${DATABASE_URL}
+      STORE_MODEL_IN_DB: "True"
+      LITELLM_TELEMETRY: "False"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4000/health/liveliness')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_http_proxy"
+      - "traefik.http.routers.litellm-secured.rule=Host(`${SRVNAME}`)"
+      - "traefik.http.routers.litellm-secured.entrypoints=websecure"
+      - "traefik.http.routers.litellm-secured.tls=true"
+      - "traefik.http.routers.litellm-secured.tls.certresolver=myhttpchallenge"
+      - "traefik.http.services.litellm.loadbalancer.server.port=4000"
+
+networks:
+  llm-net:
+    driver: bridge
+  traefik_http_proxy:
+    external: true
+
+volumes:
+  ollama-models:
