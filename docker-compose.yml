@@ -1,8 +1,10 @@
+name: ${PROJECT_NAME:-local-ai}
+
 services:
 
   ollama:
     image: ollama/ollama:${OLLAMA_VERSION:-0.30.7}
-    container_name: ${PROJECT_NAME:-local}.ollama
+    container_name: ${PROJECT_NAME:-local-ai}.ollama
     restart: unless-stopped
     networks:
       - llm-net
@@ -14,7 +16,7 @@ services:
 
   litellm:
     image: ghcr.io/berriai/litellm:${LITELLM_VERSION:-v1.88.1}
-    container_name: ${PROJECT_NAME:-local}.litellm
+    container_name: ${PROJECT_NAME:-local-ai}.litellm
     restart: unless-stopped
     networks:
       - llm-net
